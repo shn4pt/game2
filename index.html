@@ -48,6 +48,12 @@
         height: 22px;
       }
     }
+
+    .touch-btn {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
   </style>
 </head>
 <body>
@@ -62,33 +68,13 @@
     const BEST_SCORE_KEY = "tetris-best-score-v1";
 
     const PIECES = {
-      I: [
-        [1, 1, 1, 1]
-      ],
-      O: [
-        [1, 1],
-        [1, 1]
-      ],
-      T: [
-        [0, 1, 0],
-        [1, 1, 1]
-      ],
-      S: [
-        [0, 1, 1],
-        [1, 1, 0]
-      ],
-      Z: [
-        [1, 1, 0],
-        [0, 1, 1]
-      ],
-      J: [
-        [1, 0, 0],
-        [1, 1, 1]
-      ],
-      L: [
-        [0, 0, 1],
-        [1, 1, 1]
-      ]
+      I: [[1, 1, 1, 1]],
+      O: [[1, 1], [1, 1]],
+      T: [[0, 1, 0], [1, 1, 1]],
+      S: [[0, 1, 1], [1, 1, 0]],
+      Z: [[1, 1, 0], [0, 1, 1]],
+      J: [[1, 0, 0], [1, 1, 1]],
+      L: [[0, 0, 1], [1, 1, 1]]
     };
 
     const COLORS = {
@@ -116,12 +102,7 @@
 
     function createPiece(type = getRandomType()) {
       const matrix = PIECES[type].map(row => [...row]);
-      return {
-        type,
-        matrix,
-        x: Math.floor((BOARD_WIDTH - matrix[0].length) / 2),
-        y: -1
-      };
+      return { type, matrix, x: Math.floor((BOARD_WIDTH - matrix[0].length) / 2), y: -1 };
     }
 
     function collides(board, piece, offsetX = 0, offsetY = 0) {
@@ -174,12 +155,7 @@
     }
 
     function scoreForLines(lines) {
-      const table = {
-        1: 100,
-        2: 300,
-        3: 500,
-        4: 800
-      };
+      const table = { 1: 100, 2: 300, 3: 500, 4: 800 };
       return table[lines] || 0;
     }
 
@@ -203,10 +179,7 @@
       })();
 
       if (saved && saved.board && saved.current && saved.next) {
-        return {
-          ...saved,
-          best: Math.max(best, Number(saved.best || best))
-        };
+        return { ...saved, best: Math.max(best, Number(saved.best || best)) };
       }
 
       return {
@@ -259,6 +232,111 @@
         }
       }, [game]);
 
+      const moveLeft = () => {
+        setGame(prev => {
+          if (prev.status !== "running") return prev;
+          const moved = { ...prev.current, x: prev.current.x - 1 };
+          if (!collides(prev.board, moved)) {
+            return { ...prev, current: moved };
+          }
+          return prev;
+        });
+      };
+
+      const moveRight = () => {
+        setGame(prev => {
+          if (prev.status !== "running") return prev;
+          const moved = { ...prev.current, x: prev.current.x + 1 };
+          if (!collides(prev.board, moved)) {
+            return { ...prev, current: moved };
+          }
+          return prev;
+        });
+      };
+
+      const softDrop = () => {
+        setGame(prev => {
+          if (prev.status !== "running") return prev;
+          const moved = { ...prev.current, y: prev.current.y + 1 };
+          if (!collides(prev.board, moved)) {
+            return { ...prev, current: moved };
+          }
+          return lockAndSpawn(prev, prev.current);
+        });
+      };
+
+      const rotate = () => {
+        setGame(prev => {
+          if (prev.status !== "running") return prev;
+          const rotated = rotateMatrix(prev.current.matrix);
+          const kickOffsets = [0, -1, 1, -2, 2];
+          for (const offset of kickOffsets) {
+            const candidate = { ...prev.current, matrix: rotated, x: prev.current.x + offset };
+            if (!collides(prev.board, candidate)) {
+              return { ...prev, current: candidate };
+            }
+          }
+          return prev;
+        });
+      };
+
+      const hardDrop = () => {
+        setGame(prev => {
+          if (prev.status !== "running") return prev;
+          let piece = { ...prev.current };
+          while (!collides(prev.board, { ...piece, y: piece.y + 1 })) {
+            piece = { ...piece, y: piece.y + 1 };
+          }
+          return lockAndSpawn(prev, piece);
+        });
+      };
+
+      useEffect(() => {
+        const handleKeyDown = (event) => {
+          if (event.key === "p" || event.key === "P") {
+            event.preventDefault();
+            setGame(prev => {
+              if (prev.status === "gameover") return prev;
+              return { ...prev, status: prev.status === "paused" ? "running" : "paused" };
+            });
+            return;
+          }
+
+          if (game.status !== "running") return;
+
+          const key = event.key;
+          if (["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", " ", "x", "X"].includes(key)) {
+            event.preventDefault();
+          }
+
+          if (key === "ArrowLeft") moveLeft();
+          if (key === "ArrowRight") moveRight();
+          if (key === "ArrowDown") softDrop();
+          if (key === "ArrowUp" || key === "x" || key === "X") rotate();
+          if (key === " ") hardDrop();
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }, [game.status]);
+
+      useEffect(() => {
+        if (game.status !== "running") return;
+
+        const interval = setInterval(() => {
+          setGame(prev => {
+            if (prev.status !== "running") return prev;
+            const dropped = { ...prev.current, y: prev.current.y + 1 };
+            if (!collides(prev.board, dropped)) {
+              return { ...prev, current: dropped };
+            }
+            return lockAndSpawn(prev, prev.current);
+          });
+        }, Math.max(120, 650 - (game.level - 1) * 55));
+
+        return () => clearInterval(interval);
+      }, [game.status, game.level]);
+
       const displayBoard = useMemo(() => {
         const board = cloneBoard(game.board);
         for (let y = 0; y < game.current.matrix.length; y++) {
@@ -287,111 +365,6 @@
         });
       };
 
-      useEffect(() => {
-        const handleKeyDown = (event) => {
-          if (event.key === "p" || event.key === "P") {
-            event.preventDefault();
-            setGame(prev => {
-              if (prev.status === "gameover") return prev;
-              return { ...prev, status: prev.status === "paused" ? "running" : "paused" };
-            });
-            return;
-          }
-
-          if (game.status !== "running") return;
-
-          const key = event.key;
-          if (["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", " ", "x", "X"].includes(key)) {
-            event.preventDefault();
-          }
-
-          if (key === "ArrowLeft") {
-            setGame(prev => {
-              if (prev.status !== "running") return prev;
-              const moved = { ...prev.current, x: prev.current.x - 1 };
-              if (!collides(prev.board, moved)) {
-                return { ...prev, current: moved };
-              }
-              return prev;
-            });
-          }
-
-          if (key === "ArrowRight") {
-            setGame(prev => {
-              if (prev.status !== "running") return prev;
-              const moved = { ...prev.current, x: prev.current.x + 1 };
-              if (!collides(prev.board, moved)) {
-                return { ...prev, current: moved };
-              }
-              return prev;
-            });
-          }
-
-          if (key === "ArrowDown") {
-            setGame(prev => {
-              if (prev.status !== "running") return prev;
-              const moved = { ...prev.current, y: prev.current.y + 1 };
-              if (!collides(prev.board, moved)) {
-                return { ...prev, current: moved };
-              }
-              return lockAndSpawn(prev, prev.current);
-            });
-          }
-
-          if (key === "ArrowUp" || key === "x" || key === "X") {
-            setGame(prev => {
-              if (prev.status !== "running") return prev;
-              const rotated = rotateMatrix(prev.current.matrix);
-              const kickOffsets = [0, -1, 1, -2, 2];
-              for (const offset of kickOffsets) {
-                const candidate = {
-                  ...prev.current,
-                  matrix: rotated,
-                  x: prev.current.x + offset
-                };
-                if (!collides(prev.board, candidate)) {
-                  return { ...prev, current: candidate };
-                }
-              }
-              return prev;
-            });
-          }
-
-          if (key === " ") {
-            setGame(prev => {
-              if (prev.status !== "running") return prev;
-              let piece = { ...prev.current };
-              while (!collides(prev.board, { ...piece, y: piece.y + 1 })) {
-                piece = { ...piece, y: piece.y + 1 };
-              }
-              return lockAndSpawn(prev, piece);
-            });
-          }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-      }, [game.status]);
-
-      useEffect(() => {
-        if (game.status !== "running") return;
-
-        const interval = setInterval(() => {
-          setGame(prev => {
-            if (prev.status !== "running") return prev;
-
-            const dropped = { ...prev.current, y: prev.current.y + 1 };
-            if (!collides(prev.board, dropped)) {
-              return { ...prev, current: dropped };
-            }
-
-            return lockAndSpawn(prev, prev.current);
-          });
-        }, Math.max(120, 650 - (game.level - 1) * 55));
-
-        return () => clearInterval(interval);
-      }, [game.status, game.level]);
-
       const nextPiecePreview = useMemo(() => {
         const preview = Array.from({ length: 4 }, () => Array(4).fill(null));
         const matrix = game.next.matrix;
@@ -417,9 +390,7 @@
                       const type = cell || null;
                       const base = "cell flex items-center justify-center";
                       const color = type ? COLORS[type] : "bg-slate-900/80 border-slate-700";
-                      return (
-                        <div key={`${y}-${x}`} className={`${base} ${color}`} />
-                      );
+                      return <div key={`${y}-${x}`} className={`${base} ${color}`} />;
                     })
                   )}
                 </div>
@@ -460,20 +431,15 @@
                 </div>
 
                 <div className="space-y-2">
-                  <button
-                    onClick={startNewGame}
-                    className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 transition"
-                  >
+                  <button onClick={startNewGame} className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 transition">
                     New Game
                   </button>
 
                   <button
-                    onClick={() =>
-                      setGame(prev => {
-                        if (prev.status === "gameover") return prev;
-                        return { ...prev, status: prev.status === "paused" ? "running" : "paused" };
-                      })
-                    }
+                    onClick={() => setGame(prev => {
+                      if (prev.status === "gameover") return prev;
+                      return { ...prev, status: prev.status === "paused" ? "running" : "paused" };
+                    })}
                     className="w-full rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 transition"
                   >
                     {game.status === "paused" ? "Resume" : "Pause"}
@@ -493,15 +459,26 @@
               </div>
             </div>
 
+            <div className="mt-6 md:hidden">
+              <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+                <div></div>
+                <button className="touch-btn rounded-xl bg-cyan-500 text-slate-950 font-black py-4 text-xl" onClick={rotate}>↻</button>
+                <div></div>
+                <button className="touch-btn rounded-xl bg-slate-700 text-white font-black py-4 text-xl" onClick={moveLeft}>←</button>
+                <button className="touch-btn rounded-xl bg-slate-700 text-white font-black py-4 text-xl" onClick={softDrop}>↓</button>
+                <button className="touch-btn rounded-xl bg-slate-700 text-white font-black py-4 text-xl" onClick={moveRight}>→</button>
+                <div></div>
+                <button className="touch-btn rounded-xl bg-violet-500 text-white font-black py-4 text-xl" onClick={hardDrop}>Drop</button>
+                <div></div>
+              </div>
+            </div>
+
             {game.status === "gameover" && (
               <div className="fixed inset-0 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm">
                 <div className="rounded-3xl border border-red-500/50 bg-slate-900 p-8 text-center shadow-2xl">
                   <div className="text-3xl font-black text-red-400 mb-2">Game Over</div>
                   <div className="text-xl mb-6">Score: {game.score}</div>
-                  <button
-                    onClick={startNewGame}
-                    className="rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold px-6 py-3 transition"
-                  >
+                  <button onClick={startNewGame} className="rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold px-6 py-3 transition">
                     Retry
                   </button>
                 </div>
