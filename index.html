@@ -63,8 +63,20 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       min-height: 52px;
+      height: 52px;
+      width: 100%;
       border-radius: 14px;
       font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      text-align: center;
+      overflow: hidden;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      box-sizing: border-box;
+      white-space: nowrap;
     }
 
     @media (max-width: 640px) {
@@ -497,16 +509,20 @@
                 <div className="w-full max-w-[420px] px-3 pb-2 sm:hidden">
                   <div className="grid grid-cols-3 gap-2">
                     <div></div>
-                    <button className="touch-btn bg-cyan-500 text-slate-950 text-xl" onClick={rotate}>↻</button>
+                    <button className="touch-btn bg-cyan-500 text-slate-950 text-base" onClick={rotate} aria-label="Rotate piece">
+                      <span className="flex items-center gap-1"><span className="text-xl">↻</span><span className="text-[10px]">ROTATE</span></span>
+                    </button>
                     <div></div>
 
-                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveLeft}>←</button>
-                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={softDrop}>↓</button>
-                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveRight}>→</button>
+                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveLeft} aria-label="Move left">←</button>
+                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={softDrop} aria-label="Soft drop">↓</button>
+                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveRight} aria-label="Move right">→</button>
 
-                    <button className="touch-btn bg-slate-600 text-white text-sm" onClick={() => setGame(prev => prev.status === "gameover" ? prev : { ...prev, status: prev.status === "paused" ? "running" : "paused" })}>{game.status === "paused" ? "Resume" : "Pause"}</button>
-                    <button className="touch-btn bg-violet-500 text-white text-sm" onClick={hardDrop}>Drop</button>
-                    <button className="touch-btn bg-cyan-500 text-slate-950 text-sm" onClick={startNewGame}>New</button>
+                    <button className="touch-btn bg-slate-600 text-white text-[10px]" onClick={() => setGame(prev => prev.status === "gameover" ? prev : { ...prev, status: prev.status === "paused" ? "running" : "paused" })} aria-label="Pause or resume">
+                      {game.status === "paused" ? "RESUME" : "PAUSE"}
+                    </button>
+                    <button className="touch-btn bg-violet-500 text-white text-[10px]" onClick={hardDrop} aria-label="Hard drop">DROP</button>
+                    <button className="touch-btn bg-cyan-500 text-slate-950 text-[10px]" onClick={startNewGame} aria-label="Start new game">NEW</button>
                   </div>
                 </div>
               )}
