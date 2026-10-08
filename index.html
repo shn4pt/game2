@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Tetris</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -343,6 +346,18 @@
         });
       };
 
+      const handleNewGame = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        startGame();
+      };
+
+      const handleHardDrop = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        hardDrop();
+      };
+
       useEffect(() => {
         const handleKeyDown = (event) => {
           if (event.key === "p" || event.key === "P") {
@@ -429,7 +444,7 @@
                   <div className="w-[85%] max-w-sm rounded-3xl border border-cyan-500/40 bg-slate-900 p-6 text-center shadow-2xl">
                     <div className="text-3xl font-black text-cyan-300 mb-2">TETRIS</div>
                     <div className="text-sm text-slate-300 mb-6">Best: {game.best || 0}</div>
-                    <button onClick={startGame} className="w-full rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-3 text-lg transition">
+                    <button type="button" onClick={handleNewGame} className="w-full rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-3 text-lg transition">
                       START
                     </button>
                   </div>
@@ -491,11 +506,12 @@
                     </div>
 
                     <div className="space-y-2">
-                      <button onClick={startGame} className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 transition">
+                      <button type="button" onClick={handleNewGame} className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 transition">
                         Start
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => setGame(prev => {
                           if (prev.status === "gameover" || prev.status === "start") return prev;
                           return { ...prev, status: prev.status === "paused" ? "running" : "paused" };
@@ -521,23 +537,23 @@
               </div>
 
               {isMobile && (
-                <div className="w-full max-w-[420px] px-3 pb-2 sm:hidden">
+                <div className="w-full max-w-[420px] px-3 pb-2 sm:hidden" style={{ paddingBottom: 'calc(var(--safe-bottom) + 12px)' }}>
                   <div className="grid grid-cols-3 gap-2">
                     <div></div>
-                    <button className="touch-btn bg-cyan-500 text-slate-950 text-base" onClick={rotate} aria-label="Rotate piece">
+                    <button type="button" className="touch-btn bg-cyan-500 text-slate-950 text-base" onPointerDown={(e) => { e.preventDefault(); rotate(); }} onClick={(e) => { e.preventDefault(); rotate(); }} aria-label="Rotate piece">
                       <span className="flex items-center gap-1"><span className="text-xl">↻</span><span className="text-[10px]">ROTATE</span></span>
                     </button>
                     <div></div>
 
-                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveLeft} aria-label="Move left">←</button>
-                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={softDrop} aria-label="Soft drop">↓</button>
-                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveRight} aria-label="Move right">→</button>
+                    <button type="button" className="touch-btn bg-slate-700 text-white text-2xl" onPointerDown={(e) => { e.preventDefault(); moveLeft(); }} onClick={(e) => { e.preventDefault(); moveLeft(); }} aria-label="Move left">←</button>
+                    <button type="button" className="touch-btn bg-slate-700 text-white text-2xl" onPointerDown={(e) => { e.preventDefault(); softDrop(); }} onClick={(e) => { e.preventDefault(); softDrop(); }} aria-label="Soft drop">↓</button>
+                    <button type="button" className="touch-btn bg-slate-700 text-white text-2xl" onPointerDown={(e) => { e.preventDefault(); moveRight(); }} onClick={(e) => { e.preventDefault(); moveRight(); }} aria-label="Move right">→</button>
 
-                    <button className="touch-btn bg-slate-600 text-white text-[10px]" onClick={() => setGame(prev => prev.status === "gameover" || prev.status === "start" ? prev : { ...prev, status: prev.status === "paused" ? "running" : "paused" })} aria-label="Pause or resume">
+                    <button type="button" className="touch-btn bg-slate-600 text-white text-[10px]" onPointerDown={(e) => { e.preventDefault(); setGame(prev => prev.status === "gameover" || prev.status === "start" ? prev : { ...prev, status: prev.status === "paused" ? "running" : "paused" }); }} onClick={(e) => { e.preventDefault(); setGame(prev => prev.status === "gameover" || prev.status === "start" ? prev : { ...prev, status: prev.status === "paused" ? "running" : "paused" }); }} aria-label="Pause or resume">
                       {game.status === "paused" ? "RESUME" : "PAUSE"}
                     </button>
-                    <button className="touch-btn bg-violet-500 text-white text-[10px]" onClick={hardDrop} aria-label="Hard drop">DROP</button>
-                    <button className="touch-btn bg-cyan-500 text-slate-950 text-[10px]" onClick={startGame} aria-label="Start new game">NEW</button>
+                    <button type="button" className="touch-btn bg-violet-500 text-white text-[10px]" onPointerDown={handleHardDrop} onClick={handleHardDrop} aria-label="Hard drop">DROP</button>
+                    <button type="button" className="touch-btn bg-cyan-500 text-slate-950 text-[10px]" onPointerDown={handleNewGame} onClick={handleNewGame} aria-label="Start new game">NEW</button>
                   </div>
                 </div>
               )}
@@ -548,7 +564,7 @@
                 <div className="rounded-3xl border border-red-500/50 bg-slate-900 p-8 text-center shadow-2xl">
                   <div className="text-3xl font-black text-red-400 mb-2">Game Over</div>
                   <div className="text-xl mb-6">Score: {game.score}</div>
-                  <button onClick={startGame} className="rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold px-6 py-3 transition">
+                  <button type="button" onClick={handleNewGame} className="rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold px-6 py-3 transition">
                     Retry
                   </button>
                 </div>
