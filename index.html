@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Tetris</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -20,6 +20,22 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
+    :root {
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --safe-left: env(safe-area-inset-left);
+      --safe-right: env(safe-area-inset-right);
+    }
+
+    html, body, #root {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #020817;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
     body {
       background:
         radial-gradient(circle at top, rgba(34,197,94,0.15), transparent 30%),
@@ -35,11 +51,20 @@
     }
 
     .cell {
-      width: 26px;
-      height: 26px;
+      width: min(7.6vw, 22px);
+      height: min(7.6vw, 22px);
       border: 1px solid rgba(148, 163, 184, 0.18);
       border-radius: 4px;
       background: rgba(15, 23, 42, 0.85);
+    }
+
+    .touch-btn {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      min-height: 52px;
+      border-radius: 14px;
+      font-weight: 800;
     }
 
     @media (max-width: 640px) {
@@ -47,12 +72,6 @@
         width: 22px;
         height: 22px;
       }
-    }
-
-    .touch-btn {
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
     }
   </style>
 </head>
@@ -102,7 +121,12 @@
 
     function createPiece(type = getRandomType()) {
       const matrix = PIECES[type].map(row => [...row]);
-      return { type, matrix, x: Math.floor((BOARD_WIDTH - matrix[0].length) / 2), y: -1 };
+      return {
+        type,
+        matrix,
+        x: Math.floor((BOARD_WIDTH - matrix[0].length) / 2),
+        y: -1
+      };
     }
 
     function collides(board, piece, offsetX = 0, offsetY = 0) {
@@ -379,98 +403,113 @@
         return preview;
       }, [game.next]);
 
+      const isMobile = window.innerWidth < 768;
+
       return (
-        <div className="min-h-screen text-slate-100 flex items-center justify-center p-4">
-          <div className="w-full max-w-5xl rounded-3xl border border-slate-700/80 bg-slate-900/80 p-5 shadow-2xl backdrop-blur-md">
-            <div className="flex flex-col md:flex-row gap-6 items-center md:items-start justify-center">
-              <div className="game-grid rounded-2xl p-2 border border-slate-700">
-                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${BOARD_WIDTH}, minmax(0, 1fr))` }}>
-                  {displayBoard.flatMap((row, y) =>
-                    row.map((cell, x) => {
-                      const type = cell || null;
-                      const base = "cell flex items-center justify-center";
-                      const color = type ? COLORS[type] : "bg-slate-900/80 border-slate-700";
-                      return <div key={`${y}-${x}`} className={`${base} ${color}`} />;
-                    })
-                  )}
-                </div>
+        <div className="min-h-screen text-slate-100 flex items-center justify-center p-0 sm:p-4" style={{ paddingTop: 'calc(var(--safe-top) + 8px)', paddingBottom: 'calc(var(--safe-bottom) + 8px)' }}>
+          <div className="w-full h-full sm:h-auto max-w-[420px] sm:max-w-5xl rounded-none sm:rounded-3xl border-0 sm:border border-slate-700/80 bg-slate-900/80 p-0 sm:p-5 shadow-2xl backdrop-blur-md flex items-center justify-center">
+            <div className="w-full max-w-[420px] sm:max-w-5xl flex flex-col gap-2 sm:gap-6 items-center justify-center">
+              <div className="w-full flex items-center justify-between px-3 pt-2 sm:hidden">
+                <div className="text-sm text-cyan-300 font-bold">Score {game.score}</div>
+                <div className="text-sm text-violet-300 font-bold">Best {game.best || 0}</div>
               </div>
 
-              <div className="w-full max-w-xs space-y-4">
-                <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4">
-                  <div className="text-xs uppercase tracking-[0.25em] text-cyan-300 mb-3">Score</div>
-                  <div className="text-4xl font-black tabular-nums">{game.score}</div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-xl bg-slate-700/80 p-2">
-                      <div className="text-slate-300">Lines</div>
-                      <div className="text-xl font-bold">{game.lines}</div>
-                    </div>
-                    <div className="rounded-xl bg-slate-700/80 p-2">
-                      <div className="text-slate-300">Level</div>
-                      <div className="text-xl font-bold">{game.level}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4">
-                  <div className="text-xs uppercase tracking-[0.25em] text-violet-300 mb-3">Best</div>
-                  <div className="text-3xl font-black tabular-nums">{game.best || 0}</div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4">
-                  <div className="text-xs uppercase tracking-[0.25em] text-amber-300 mb-3">Next</div>
-                  <div className="grid grid-cols-4 gap-1 w-28">
-                    {nextPiecePreview.flatMap((row, y) =>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 items-center sm:items-start justify-center w-full">
+                <div className="game-grid rounded-xl sm:rounded-2xl p-1.5 sm:p-2 border border-slate-700">
+                  <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${BOARD_WIDTH}, minmax(0, 1fr))` }}>
+                    {displayBoard.flatMap((row, y) =>
                       row.map((cell, x) => {
-                        const base = "w-6 h-6 rounded-sm border border-slate-700";
-                        const color = cell ? COLORS[cell] : "bg-slate-900/80";
+                        const type = cell || null;
+                        const base = "cell flex items-center justify-center";
+                        const color = type ? COLORS[type] : "bg-slate-900/80 border-slate-700";
                         return <div key={`${y}-${x}`} className={`${base} ${color}`} />;
                       })
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <button onClick={startNewGame} className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 transition">
-                    New Game
-                  </button>
+                {!isMobile && (
+                  <div className="w-full max-w-xs space-y-4 hidden sm:block">
+                    <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4">
+                      <div className="text-xs uppercase tracking-[0.25em] text-cyan-300 mb-3">Score</div>
+                      <div className="text-4xl font-black tabular-nums">{game.score}</div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-xl bg-slate-700/80 p-2">
+                          <div className="text-slate-300">Lines</div>
+                          <div className="text-xl font-bold">{game.lines}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-700/80 p-2">
+                          <div className="text-slate-300">Level</div>
+                          <div className="text-xl font-bold">{game.level}</div>
+                        </div>
+                      </div>
+                    </div>
 
-                  <button
-                    onClick={() => setGame(prev => {
-                      if (prev.status === "gameover") return prev;
-                      return { ...prev, status: prev.status === "paused" ? "running" : "paused" };
-                    })}
-                    className="w-full rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 transition"
-                  >
-                    {game.status === "paused" ? "Resume" : "Pause"}
-                  </button>
-                </div>
+                    <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4">
+                      <div className="text-xs uppercase tracking-[0.25em] text-violet-300 mb-3">Best</div>
+                      <div className="text-3xl font-black tabular-nums">{game.best || 0}</div>
+                    </div>
 
-                <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4 text-sm text-slate-300">
-                  <div className="font-semibold text-slate-100 mb-2">Controls</div>
-                  <ul className="space-y-1">
-                    <li>← → : Move</li>
-                    <li>↑ or X : Rotate</li>
-                    <li>↓ : Soft Drop</li>
-                    <li>Space : Hard Drop</li>
-                    <li>P : Pause</li>
-                  </ul>
-                </div>
+                    <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4">
+                      <div className="text-xs uppercase tracking-[0.25em] text-amber-300 mb-3">Next</div>
+                      <div className="grid grid-cols-4 gap-1 w-28">
+                        {nextPiecePreview.flatMap((row, y) =>
+                          row.map((cell, x) => {
+                            const base = "w-6 h-6 rounded-sm border border-slate-700";
+                            const color = cell ? COLORS[cell] : "bg-slate-900/80";
+                            return <div key={`${y}-${x}`} className={`${base} ${color}`} />;
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <button onClick={startNewGame} className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 transition">
+                        New Game
+                      </button>
+
+                      <button
+                        onClick={() => setGame(prev => {
+                          if (prev.status === "gameover") return prev;
+                          return { ...prev, status: prev.status === "paused" ? "running" : "paused" };
+                        })}
+                        className="w-full rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 transition"
+                      >
+                        {game.status === "paused" ? "Resume" : "Pause"}
+                      </button>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4 text-sm text-slate-300">
+                      <div className="font-semibold text-slate-100 mb-2">Controls</div>
+                      <ul className="space-y-1">
+                        <li>← → : Move</li>
+                        <li>↑ or X : Rotate</li>
+                        <li>↓ : Soft Drop</li>
+                        <li>Space : Hard Drop</li>
+                        <li>P : Pause</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
 
-            <div className="mt-6 md:hidden">
-              <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
-                <div></div>
-                <button className="touch-btn rounded-xl bg-cyan-500 text-slate-950 font-black py-4 text-xl" onClick={rotate}>↻</button>
-                <div></div>
-                <button className="touch-btn rounded-xl bg-slate-700 text-white font-black py-4 text-xl" onClick={moveLeft}>←</button>
-                <button className="touch-btn rounded-xl bg-slate-700 text-white font-black py-4 text-xl" onClick={softDrop}>↓</button>
-                <button className="touch-btn rounded-xl bg-slate-700 text-white font-black py-4 text-xl" onClick={moveRight}>→</button>
-                <div></div>
-                <button className="touch-btn rounded-xl bg-violet-500 text-white font-black py-4 text-xl" onClick={hardDrop}>Drop</button>
-                <div></div>
-              </div>
+              {isMobile && (
+                <div className="w-full max-w-[420px] px-3 pb-2 sm:hidden">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div></div>
+                    <button className="touch-btn bg-cyan-500 text-slate-950 text-xl" onClick={rotate}>↻</button>
+                    <div></div>
+
+                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveLeft}>←</button>
+                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={softDrop}>↓</button>
+                    <button className="touch-btn bg-slate-700 text-white text-2xl" onClick={moveRight}>→</button>
+
+                    <button className="touch-btn bg-slate-600 text-white text-sm" onClick={() => setGame(prev => prev.status === "gameover" ? prev : { ...prev, status: prev.status === "paused" ? "running" : "paused" })}>{game.status === "paused" ? "Resume" : "Pause"}</button>
+                    <button className="touch-btn bg-violet-500 text-white text-sm" onClick={hardDrop}>Drop</button>
+                    <button className="touch-btn bg-cyan-500 text-slate-950 text-sm" onClick={startNewGame}>New</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {game.status === "gameover" && (
